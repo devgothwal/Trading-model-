@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MT5 Advanced Trading Analysis Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem 2rem;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 0.5rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .upload-area {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .upload-area.dragover {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 1rem 0;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-container h3 {
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            text-align: center;
+        }
+
+        .insights-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .insight-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .insight-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .insight-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #00d4ff;
+        }
+
+        .insight-item {
+            margin: 0.8rem 0;
+            padding-left: 1rem;
+            border-left: 3px solid #ff6b6b;
+        }
+
+        .trade-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .trade-table th {
+            background: rgba(0, 212, 255, 0.3);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .trade-table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .trade-table tr:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .positive {
+            color: #4ade80 !important;
+        }
+
+        .negative {
+            color: #f87171 !important;
+        }
+
+        .success {
+            color: #4ade80;
+            margin: 1rem 0;
+        }
+
+        .error {
+            color: #f87171;
+            margin: 1rem 0;
+        }
+
+        .warning {
+            color: #fbbf24;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #00d4ff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .control-group select,
+        .control-group input {
+            padding: 0.5rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            backdrop-filter: blur(10px);
+        }
+
+        .export-btn {
+            background: linear-gradient(45deg, #4ade80, #22c55e);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(74, 222, 128, 0.3);
+        }
+
+        .prediction-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .prediction-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .predict-btn {
+            background: linear-gradient(45deg, #8b5cf6, #a855f7);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .prediction-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            display: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🚀 MT5 Advanced Trading Analysis Dashboard</h1>
+    </nav>
+
+    <div class="container">
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('upload')">📁 Upload & Overview</button>
+            <button class="tab" onclick="switchTab('analysis')">📊 Deep Analysis</button>
+            <button class="tab" onclick="switchTab('patterns')">🎯 Pattern Recognition</button>
+            <button class="tab" onclick="switchTab('insights')">💡 AI Insights</button>
+            <button class="tab" onclick="switchTab('prediction')">🔮 Prediction Engine</button>
+        </div>
+
+        <!-- Upload Tab -->
+        <div id="upload" class="tab-content active">
+            <div class="upload-area" id="uploadArea">
+                <label for="fileInput">
+                    <div class="upload-btn">📤 Upload MT5 Excel File</div>
+                </label>
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+                <p style="margin-top: 1rem; opacity: 0.8;">
+                    Drag & drop your MT5 trade history export file or click to browse
+                </p>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>Analyzing your trading data...</p>
+            </div>
+
+            <div id="overviewResults" class="hidden">
+                <div class="stats-grid" id="statsContainer"></div>
+                
+                <div class="chart-container">
+                    <h3>📈 Cumulative Profit Performance</h3>
+                    <canvas id="profitChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>🎯 Performance by Symbol</h3>
+                    <canvas id="symbolChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Tab -->
+        <div id="analysis" class="tab-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label>Time Period</label>
+                    <select id="timePeriod">
+                        <option value="all">All Time</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="60">Last 60 Days</option>
+                        <option value="90">Last 90 Days</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Symbol Filter</label>
+                    <select id="symbolFilter">
+                        <option value="all">All Symbols</option>
+                    </select>
+                </div>
+                <button class="export-btn" onclick="exportReport()">📄 Export Report</button>
+            </div>
+
+            <div id="analysisResults" class="hidden">
+                <div class="chart-container">
+                    <h3>⏰ Performance by Hour of Day</h3>
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>📅 Performance by Day of Week</h3>
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>🎲 Win Rate vs Trade Duration</h3>
+                    <canvas id="durationChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>📋 Recent Trades</h3>
+                    <table class="trade-table" id="tradeTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Symbol</th>
+                                <th>Type</th>
+                                <th>Volume</th>
+                                <th>Entry</th>
+                                <th>Exit</th>
+                                <th>Duration</th>
+                                <th>Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradeTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patterns Tab -->
+        <div id="patterns" class="tab-content">
+            <div id="patternsResults" class="hidden">
+                <div class="chart-container">
+                    <h3>🧩 Trading Pattern Clusters</h3>
+                    <canvas id="clusterChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>📊 Risk/Reward Distribution</h3>
+                    <canvas id="riskRewardChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>🎯 Volume vs Profit Analysis</h3>
+                    <canvas id="volumeProfitChart"></canvas>
+                </div>
+
+                <div class="insights-container" id="patternInsights"></div>
+            </div>
+        </div>
+
+        <!-- Insights Tab -->
+        <div id="insights" class="tab-content">
+            <div id="insightsResults" class="hidden">
+                <div class="insights-container" id="actionableInsights"></div>
+            </div>
+        </div>
+
+        <!-- Prediction Tab -->
+        <div id="prediction" class="tab-content">
+            <div class="prediction-panel">
+                <h3>🔮 AI-Powered Trade Prediction</h3>
+                <p style="opacity: 0.8; margin-bottom: 2rem;">
+                    Enter trade parameters to get AI predictions based on your historical patterns
+                </p>
+                
+                <div class="prediction-inputs">
+                    <div class="control-group">
+                        <label>Symbol</label>
+                        <select id="predSymbol">
+                            <option value="">Select Symbol</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Hour (0-23)</label>
+                        <input type="number" id="predHour" min="0" max="23" value="12">
+                    </div>
+                    <div class="control-group">
+                        <label>Day of Week</label>
+                        <select id="predDay">
+                            <option value="0">Monday</option>
+                            <option value="1">Tuesday</option>
+                            <option value="2">Wednesday</option>
+                            <option value="3">Thursday</option>
+                            <option value="4">Friday</option>
+                            <option value="5">Saturday</option>
+                            <option value="6">Sunday</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Volume</label>
+                        <input type="number" id="predVolume" step="0.01" value="0.1">
+                    </div>
+                </div>
+                
+                <button class="predict-btn" onclick="makePrediction()">🎯 Predict Trade Outcome</button>
+                
+                <div class="prediction-result" id="predictionResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = null;
+        let charts = {};
+        let tradingPatterns = null;
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content and mark tab as active
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // File upload handling
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        
+        // Drag and drop functionality
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            const status = document.getElementById('uploadStatus');
+            const loading = document.getElementById('loadingIndicator');
+            
+            status.innerHTML = '<p class="success">📁 File selected: ' + file.name + '</p>';
+            loading.classList.add('show');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    processWorkbook(workbook);
+                } catch (error) {
+                    status.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+                    loading.classList.remove('show');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processWorkbook(workbook) {
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+            
+            // Find positions data
+            let positionsStart = -1;
+            let positionsEnd = -1;
+            
+            for (let i = 0; i < jsonData.length; i++) {
+                if (jsonData[i][0] === 'Time' && jsonData[i][1] === 'Position') {
+                    positionsStart = i + 1;
+                }
+                if (jsonData[i][0] === 'Orders') {
+                    positionsEnd = i;
+                    break;
+                }
+            }
+            
+            if (positionsStart === -1) {
+                document.getElementById('uploadStatus').innerHTML = 
+                    '<p class="error">❌ Could not find trade data in file</p>';
+                document.getElementById('loadingIndicator').classList.remove('show');
+                return;
+            }
+            
+            // Extract trades
+            const trades = [];
+            for (let i = positionsStart; i < (positionsEnd > 0 ? positionsEnd : jsonData.length); i++) {
+                const row = jsonData[i];
+                if (row[0] && row[0] !== '') {
+                    const openTime = new Date(row[0]);
+                    const closeTime = new Date(row[8]);
+                    const profit = parseFloat(row[12]) || 0;
+                    
+                    trades.push({
+                        openTime: openTime,
+                        position: row[1],
+                        symbol: row[2],
+                        type: row[3],
+                        volume: parseFloat(row[4]) || 0,
+                        openPrice: parseFloat(row[5]) || 0,
+                        sl: parseFloat(row[6]) || null,
+                        tp: parseFloat(row[7]) || null,
+                        closeTime: closeTime,
+                        closePrice: parseFloat(row[9]) || 0,
+                        commission: parseFloat(row[10]) || 0,
+                        swap: parseFloat(row[11]) || 0,
+                        profit: profit,
+                        duration: (closeTime - openTime) / (1000 * 60 * 60), // hours
+                        isWinner: profit > 0,
+                        hour: openTime.getHours(),
+                        dayOfWeek: openTime.getDay()
+                    });
+                }
+            }
+            
+            if (trades.length > 0) {
+                globalData = trades;
+                document.getElementById('uploadStatus').innerHTML = 
+                    `<p class="success">✅ Loaded ${trades.length} trades successfully!</p>`;
+                document.getElementById('loadingIndicator').classList.remove('show');
+                document.getElementById('overviewResults').classList.remove('hidden');
+                
+                // Process all analysis
+                performCompleteAnalysis(trades);
+                
+            } else {
+                document.getElementById('uploadStatus').innerHTML = 
+                    '<p class="error">❌ No trades found in file</p>';
+                document.getElementById('loadingIndicator').classList.remove('show');
+            }
+        }
+
+        function performCompleteAnalysis(trades) {
+            // Basic analysis
+            analyzeOverview(trades);
+            
+            // Advanced analysis
+            analyzePatterns(trades);
+            
+            // Generate insights
+            generateActionableInsights(trades);
+            
+            // Setup prediction
+            setupPrediction(trades);
+            
+            // Show all results
+            document.getElementById('analysisResults').classList.remove('hidden');
+            document.getElementById('patternsResults').classList.remove('hidden');
+            document.getElementById('insightsResults').classList.remove('hidden');
+        }
+
+        function analyzeOverview(trades) {
+            // Calculate basic statistics
+            const totalTrades = trades.length;
+            const totalProfit = trades.reduce((sum, t) => sum + t.profit, 0);
+            const totalCommission = trades.reduce((sum, t) => sum + t.commission, 0);
+            const netProfit = totalProfit + totalCommission;
+            const winningTrades = trades.filter(t => t.profit > 0).length;
+            const winRate = (winningTrades / totalTrades * 100);
+            const avgWin = trades.filter(t => t.profit > 0).reduce((sum, t) => sum + t.profit, 0) / winningTrades || 0;
+            const avgLoss = Math.abs(trades.filter(t => t.profit < 0).reduce((sum, t) => sum + t.profit, 0) / (totalTrades - winningTrades)) || 0;
+            const profitFactor = avgWin * winningTrades / (avgLoss * (totalTrades - winningTrades)) || 0;
+
+            // Update stats display
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Trades</div>
+                    <div class="stat-value">${totalTrades}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Win Rate</div>
+                    <div class="stat-value">${winRate.toFixed(1)}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Profit</div>
+                    <div class="stat-value ${totalProfit >= 0 ? 'positive' : 'negative'}">$${totalProfit.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Net Profit</div>
+                    <div class="stat-value ${netProfit >= 0 ? 'positive' : 'negative'}">$${netProfit.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Profit Factor</div>
+                    <div class="stat-value">${profitFactor.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Win</div>
+                    <div class="stat-value positive">$${avgWin.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Loss</div>
+                    <div class="stat-value negative">$${avgLoss.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Best Trade</div>
+                    <div class="stat-value positive">$${Math.max(...trades.map(t => t.profit)).toFixed(2)}</div>
+                </div>
+            `;
+
+            // Create charts
+            createProfitChart(trades);
+            createSymbolChart(trades);
+            createHourlyChart(trades);
+            createWeeklyChart(trades);
+            createDurationChart(trades);
+            updateTradeTable(trades);
+            populateSymbolFilter(trades);
+        }
+
+        function createProfitChart(trades) {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            
+            let cumProfit = 0;
+            const profitData = trades.map((trade, index) => {
+                cumProfit += trade.profit;
+                return {
+                    x: index + 1,
+                    y: cumProfit
+                };
+            });
+            
+            if (charts.profit) charts.profit.destroy();
+            
+            charts.profit = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Cumulative Profit',
+                        data: profitData,
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Trade Number',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Profit ($)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createSymbolChart(trades) {
+            const ctx = document.getElementById('symbolChart').getContext('2d');
+            
+            const symbolProfits = {};
+            trades.forEach(trade => {
+                if (!symbolProfits[trade.symbol]) {
+                    symbolProfits[trade.symbol] = 0;
+                }
+                symbolProfits[trade.symbol] += trade.profit;
+            });
+            
+            const labels = Object.keys(symbolProfits);
+            const data = Object.values(symbolProfits);
+            const colors = data.map(p => p >= 0 ? '#4ade80' : '#f87171');
+            
+            if (charts.symbol) charts.symbol.destroy();
+            
+            charts.symbol = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Profit by Symbol',
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Profit ($)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createHourlyChart(trades) {
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            
+            const hourlyStats = {};
+            for (let hour = 0; hour < 24; hour++) {
+                hourlyStats[hour] = { wins: 0, total: 0, profit: 0 };
+            }
+            
+            trades.forEach(trade => {
+                const hour = trade.hour;
+                hourlyStats[hour].total++;
+                hourlyStats[hour].profit += trade.profit;
+                if (trade.isWinner) hourlyStats[hour].wins++;
+            });
+            
+            const hours = Object.keys(hourlyStats);
+            const winRates = hours.map(h => hourlyStats[h].total > 0 ? (hourlyStats[h].wins / hourlyStats[h].total) * 100 : 0);
+            const avgProfits = hours.map(h => hourlyStats[h].total > 0 ? hourlyStats[h].profit / hourlyStats[h].total : 0);
+            
+            if (charts.hourly) charts.hourly.destroy();
+            
+            charts.hourly = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours.map(h => h + ':00'),
+                    datasets: [{
+                        label: 'Win Rate (%)',
+                        data: winRates,
+                        backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                        borderColor: '#00d4ff',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Avg Profit ($)',
+                        data: avgProfits,
+                        type: 'line',
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Win Rate (%)',
+                                color: '#00d4ff'
+                            },
+                            ticks: { color: '#00d4ff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Average Profit ($)',
+                                color: '#ff6b6b'
+                            },
+                            ticks: { color: '#ff6b6b' },
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createWeeklyChart(trades) {
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const weeklyStats = {};
+            
+            for (let day = 0; day < 7; day++) {
+                weeklyStats[day] = { wins: 0, total: 0, profit: 0 };
+            }
+            
+            trades.forEach(trade => {
+                const day = trade.dayOfWeek;
+                weeklyStats[day].total++;
+                weeklyStats[day].profit += trade.profit;
+                if (trade.isWinner) weeklyStats[day].wins++;
+            });
+            
+            const winRates = Object.keys(weeklyStats).map(d => 
+                weeklyStats[d].total > 0 ? (weeklyStats[d].wins / weeklyStats[d].total) * 100 : 0
+            );
+            const totalProfits = Object.keys(weeklyStats).map(d => weeklyStats[d].profit);
+            
+            if (charts.weekly) charts.weekly.destroy();
+            
+            charts.weekly = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Total Profit',
+                        data: totalProfits,
+                        backgroundColor: [
+                            'rgba(255, 107, 107, 0.8)',
+                            'rgba(0, 212, 255, 0.8)',
+                            'rgba(74, 222, 128, 0.8)',
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(34, 197, 94, 0.8)'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDurationChart(trades) {
+            const ctx = document.getElementById('durationChart').getContext('2d');
+            
+            const durationData = trades.map(trade => ({
+                x: trade.duration,
+                y: trade.profit,
+                r: Math.abs(trade.profit) / 10 + 3
+            }));
+            
+            if (charts.duration) charts.duration.destroy();
+            
+            charts.duration = new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Trades',
+                        data: durationData,
+                        backgroundColor: durationData.map(d => d.y >= 0 ? 'rgba(74, 222, 128, 0.6)' : 'rgba(248, 113, 113, 0.6)'),
+                        borderColor: durationData.map(d => d.y >= 0 ? '#4ade80' : '#f87171'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Duration (hours)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Profit ($)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTradeTable(trades) {
+            const tbody = document.getElementById('tradeTableBody');
+            const recentTrades = trades.slice(-20).reverse(); // Last 20 trades
+            
+            tbody.innerHTML = recentTrades.map(trade => `
+                <tr>
+                    <td>${trade.openTime.toLocaleDateString()}</td>
+                    <td><strong>${trade.symbol}</strong></td>
+                    <td>${trade.type}</td>
+                    <td>${trade.volume}</td>
+                    <td>${trade.openPrice.toFixed(5)}</td>
+                    <td>${trade.closePrice.toFixed(5)}</td>
+                    <td>${trade.duration.toFixed(1)}h</td>
+                    <td class="${trade.profit >= 0 ? 'positive' : 'negative'}">
+                        ${trade.profit.toFixed(2)}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function populateSymbolFilter(trades) {
+            const symbols = [...new Set(trades.map(t => t.symbol))];
+            const symbolFilter = document.getElementById('symbolFilter');
+            const predSymbol = document.getElementById('predSymbol');
+            
+            symbols.forEach(symbol => {
+                const option1 = new Option(symbol, symbol);
+                const option2 = new Option(symbol, symbol);
+                symbolFilter.add(option1);
+                predSymbol.add(option2);
+            });
+        }
+
+        function analyzePatterns(trades) {
+            // Create cluster visualization
+            createClusterChart(trades);
+            createRiskRewardChart(trades);
+            createVolumeProfitChart(trades);
+            generatePatternInsights(trades);
+        }
+
+        function createClusterChart(trades) {
+            const ctx = document.getElementById('clusterChart').getContext('2d');
+            
+            // Simple clustering based on profit and duration
+            const clusterData = trades.map(trade => ({
+                x: trade.duration,
+                y: trade.profit,
+                backgroundColor: trade.isWinner ? 'rgba(74, 222, 128, 0.6)' : 'rgba(248, 113, 113, 0.6)'
+            }));
+            
+            if (charts.cluster) charts.cluster.destroy();
+            
+            charts.cluster = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Winning Trades',
+                        data: clusterData.filter(d => d.backgroundColor.includes('74, 222, 128')),
+                        backgroundColor: 'rgba(74, 222, 128, 0.6)',
+                        borderColor: '#4ade80'
+                    }, {
+                        label: 'Losing Trades',
+                        data: clusterData.filter(d => d.backgroundColor.includes('248, 113, 113')),
+                        backgroundColor: 'rgba(248, 113, 113, 0.6)',
+                        borderColor: '#f87171'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Duration (hours)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Profit ($)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRiskRewardChart(trades) {
+            const ctx = document.getElementById('riskRewardChart').getContext('2d');
+            
+            const riskRewardData = trades
+                .filter(t => t.sl && t.tp)
+                .map(trade => {
+                    const risk = Math.abs(trade.openPrice - trade.sl);
+                    const reward = Math.abs(trade.tp - trade.openPrice);
+                    const ratio = reward / risk;
+                    return {
+                        x: ratio,
+                        y: trade.profit,
+                        backgroundColor: trade.isWinner ? 'rgba(74, 222, 128, 0.6)' : 'rgba(248, 113, 113, 0.6)'
+                    };
+                });
+            
+            if (charts.riskReward) charts.riskReward.destroy();
+            
+            charts.riskReward = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Risk/Reward vs Profit',
+                        data: riskRewardData,
+                        backgroundColor: riskRewardData.map(d => d.backgroundColor),
+                        borderColor: riskRewardData.map(d => d.backgroundColor.replace('0.6', '1'))
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Risk/Reward Ratio',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Profit ($)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createVolumeProfitChart(trades) {
+            const ctx = document.getElementById('volumeProfitChart').getContext('2d');
+            
+            const volumeData = trades.map(trade => ({
+                x: trade.volume,
+                y: trade.profit,
+                r: Math.abs(trade.profit) / 5 + 2
+            }));
+            
+            if (charts.volumeProfit) charts.volumeProfit.destroy();
+            
+            charts.volumeProfit = new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Volume vs Profit',
+                        data: volumeData,
+                        backgroundColor: volumeData.map(d => d.y >= 0 ? 'rgba(0, 212, 255, 0.6)' : 'rgba(255, 107, 107, 0.6)'),
+                        borderColor: volumeData.map(d => d.y >= 0 ? '#00d4ff' : '#ff6b6b')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Volume',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Profit ($)',
+                                color: '#fff'
+                            },
+                            ticks: { color: '#fff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generatePatternInsights(trades) {
+            const container = document.getElementById('patternInsights');
+            
+            // Analyze patterns
+            const hourlyPerformance = {};
+            const symbolPerformance = {};
+            const volumeAnalysis = {};
+            
+            for (let hour = 0; hour < 24; hour++) {
+                hourlyPerformance[hour] = { wins: 0, total: 0, profit: 0 };
+            }
+            
+            trades.forEach(trade => {
+                // Hourly analysis
+                hourlyPerformance[trade.hour].total++;
+                hourlyPerformance[trade.hour].profit += trade.profit;
+                if (trade.isWinner) hourlyPerformance[trade.hour].wins++;
+                
+                // Symbol analysis
+                if (!symbolPerformance[trade.symbol]) {
+                    symbolPerformance[trade.symbol] = { wins: 0, total: 0, profit: 0 };
+                }
+                symbolPerformance[trade.symbol].total++;
+                symbolPerformance[trade.symbol].profit += trade.profit;
+                if (trade.isWinner) symbolPerformance[trade.symbol].wins++;
+                
+                // Volume analysis
+                const volumeRange = trade.volume < 0.1 ? 'small' : trade.volume < 0.5 ? 'medium' : 'large';
+                if (!volumeAnalysis[volumeRange]) {
+                    volumeAnalysis[volumeRange] = { wins: 0, total: 0, profit: 0 };
+                }
+                volumeAnalysis[volumeRange].total++;
+                volumeAnalysis[volumeRange].profit += trade.profit;
+                if (trade.isWinner) volumeAnalysis[volumeRange].wins++;
+            });
+            
+            // Find best patterns
+            const bestHour = Object.keys(hourlyPerformance)
+                .filter(h => hourlyPerformance[h].total >= 3)
+                .sort((a, b) => hourlyPerformance[b].profit - hourlyPerformance[a].profit)[0];
+            
+            const bestSymbol = Object.keys(symbolPerformance)
+                .filter(s => symbolPerformance[s].total >= 3)
+                .sort((a, b) => symbolPerformance[b].profit - symbolPerformance[a].profit)[0];
+            
+            container.innerHTML = `
+                <div class="insight-card">
+                    <div class="insight-title">🕐 Best Trading Hour</div>
+                    <div class="insight-item">Hour ${bestHour}:00 - Average profit: ${(hourlyPerformance[bestHour].profit / hourlyPerformance[bestHour].total).toFixed(2)}</div>
+                    <div class="insight-item">Win rate: ${((hourlyPerformance[bestHour].wins / hourlyPerformance[bestHour].total) * 100).toFixed(1)}%</div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-title">💹 Best Symbol</div>
+                    <div class="insight-item">${bestSymbol} - Total profit: ${symbolPerformance[bestSymbol].profit.toFixed(2)}</div>
+                    <div class="insight-item">Win rate: ${((symbolPerformance[bestSymbol].wins / symbolPerformance[bestSymbol].total) * 100).toFixed(1)}%</div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-title">📊 Volume Pattern</div>
+                    ${Object.keys(volumeAnalysis).map(vol => `
+                        <div class="insight-item">${vol.charAt(0).toUpperCase() + vol.slice(1)} volume: ${(volumeAnalysis[vol].profit / volumeAnalysis[vol].total).toFixed(2)} avg profit</div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function generateActionableInsights(trades) {
+            const container = document.getElementById('actionableInsights');
+            
+            // Calculate comprehensive insights
+            const totalTrades = trades.length;
+            const winRate = (trades.filter(t => t.isWinner).length / totalTrades) * 100;
+            
+            // Hourly analysis
+            const hourlyStats = {};
+            for (let hour = 0; hour < 24; hour++) {
+                hourlyStats[hour] = { wins: 0, total: 0, profit: 0 };
+            }
+            
+            trades.forEach(trade => {
+                hourlyStats[trade.hour].total++;
+                hourlyStats[trade.hour].profit += trade.profit;
+                if (trade.isWinner) hourlyStats[trade.hour].wins++;
+            });
+            
+            const bestHours = Object.keys(hourlyStats)
+                .filter(h => hourlyStats[h].total >= 2)
+                .sort((a, b) => (hourlyStats[b].profit / hourlyStats[b].total) - (hourlyStats[a].profit / hourlyStats[a].total))
+                .slice(0, 3);
+            
+            // Symbol analysis
+            const symbolStats = {};
+            trades.forEach(trade => {
+                if (!symbolStats[trade.symbol]) {
+                    symbolStats[trade.symbol] = { wins: 0, total: 0, profit: 0 };
+                }
+                symbolStats[trade.symbol].total++;
+                symbolStats[trade.symbol].profit += trade.profit;
+                if (trade.isWinner) symbolStats[trade.symbol].wins++;
+            });
+            
+            const bestSymbols = Object.keys(symbolStats)
+                .filter(s => symbolStats[s].total >= 3)
+                .sort((a, b) => symbolStats[b].profit - symbolStats[a].profit)
+                .slice(0, 3);
+            
+            // Day of week analysis
+            const dayStats = {};
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            for (let day = 0; day < 7; day++) {
+                dayStats[day] = { wins: 0, total: 0, profit: 0 };
+            }
+            
+            trades.forEach(trade => {
+                dayStats[trade.dayOfWeek].total++;
+                dayStats[trade.dayOfWeek].profit += trade.profit;
+                if (trade.isWinner) dayStats[trade.dayOfWeek].wins++;
+            });
+            
+            const bestDays = Object.keys(dayStats)
+                .filter(d => dayStats[d].total >= 2)
+                .sort((a, b) => dayStats[b].profit - dayStats[a].profit)
+                .slice(0, 3);
+            
+            container.innerHTML = `
+                <div class="insight-card">
+                    <div class="insight-title">⏰ OPTIMAL TRADING HOURS</div>
+                    <div class="insight-item">✅ <strong>Trade during:</strong> ${bestHours.map(h => h + ':00').join(', ')}</div>
+                    <div class="insight-item">📊 <strong>Performance:</strong> ${bestHours.map(h => 
+                        `${h}:00 (${((hourlyStats[h].wins / hourlyStats[h].total) * 100).toFixed(1)}% win rate)`
+                    ).join(', ')}</div>
+                    <div class="insight-item">🎯 <strong>Action:</strong> Set alerts for these hours and focus your trading</div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-title">💹 SYMBOL SELECTION</div>
+                    <div class="insight-item">✅ <strong>Focus on:</strong> ${bestSymbols.join(', ')}</div>
+                    <div class="insight-item">📊 <strong>Performance:</strong> ${bestSymbols.map(s => 
+                        `${s} (${symbolStats[s].profit.toFixed(2)} profit)`
+                    ).join(', ')}</div>
+                    <div class="insight-item">🎯 <strong>Action:</strong> Increase allocation to these symbols</div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-title">📅 WEEKLY PATTERNS</div>
+                    <div class="insight-item">✅ <strong>Best days:</strong> ${bestDays.map(d => dayNames[d]).join(', ')}</div>
+                    <div class="insight-item">📊 <strong>Performance:</strong> ${bestDays.map(d => 
+                        `${dayNames[d]} (${dayStats[d].profit.toFixed(2)} profit)`
+                    ).join(', ')}</div>
+                    <div class="insight-item">🎯 <strong>Action:</strong> Plan your week around high-probability days</div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-title">⚠️ RISK MANAGEMENT</div>
+                    <div class="insight-item">📊 <strong>SL Usage:</strong> ${((trades.filter(t => t.sl).length / totalTrades) * 100).toFixed(1)}% of trades</div>
+                    <div class="insight-item">📊 <strong>TP Usage:</strong> ${((trades.filter(t => t.tp).length / totalTrades) * 100).toFixed(1)}% of trades</div>
+                    <div class="insight-item">🎯 <strong>Action:</strong> ${trades.filter(t => t.sl).length / totalTrades < 0.8 ? 'Always use stop losses!' : 'Good risk management!'}</div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-title">🧠 PSYCHOLOGICAL PATTERNS</div>
+                    <div class="insight-item">📊 <strong>Win Rate:</strong> ${winRate.toFixed(1)}%</div>
+                    <div class="insight-item">📊 <strong>Avg Duration:</strong> ${(trades.reduce((sum, t) => sum + t.duration, 0) / totalTrades).toFixed(1)} hours</div>
+                    <div class="insight-item">🎯 <strong>Action:</strong> ${winRate > 60 ? 'Maintain current strategy' : 'Review entry criteria'}</div>
+                </div>
+                
+                <div class="insight-card">
+                    <div class="insight-title">📊 PERFORMANCE METRICS</div>
+                    <div class="insight-item">📊 <strong>Total Profit:</strong> ${trades.reduce((sum, t) => sum + t.profit, 0).toFixed(2)}</div>
+                    <div class="insight-item">📊 <strong>Best Trade:</strong> ${Math.max(...trades.map(t => t.profit)).toFixed(2)}</div>
+                    <div class="insight-item">📊 <strong>Worst Trade:</strong> ${Math.min(...trades.map(t => t.profit)).toFixed(2)}</div>
+                </div>
+            `;
+        }
+
+        function setupPrediction(trades) {
+            // Simple prediction based on historical patterns
+            tradingPatterns = {
+                hourlyPerformance: {},
+                symbolPerformance: {},
+                dayPerformance: {}
+            };
+            
+            // Calculate patterns
+            for (let hour = 0; hour < 24; hour++) {
+                tradingPatterns.hourlyPerformance[hour] = { wins: 0, total: 0, avgProfit: 0 };
+            }
+            
+            for (let day = 0; day < 7; day++) {
+                tradingPatterns.dayPerformance[day] = { wins: 0, total: 0, avgProfit: 0 };
+            }
+            
+            trades.forEach(trade => {
+                // Hour patterns
+                tradingPatterns.hourlyPerformance[trade.hour].total++;
+                tradingPatterns.hourlyPerformance[trade.hour].avgProfit += trade.profit;
+                if (trade.isWinner) tradingPatterns.hourlyPerformance[trade.hour].wins++;
+                
+                // Day patterns
+                tradingPatterns.dayPerformance[trade.dayOfWeek].total++;
+                tradingPatterns.dayPerformance[trade.dayOfWeek].avgProfit += trade.profit;
+                if (trade.isWinner) tradingPatterns.dayPerformance[trade.dayOfWeek].wins++;
+                
+                // Symbol patterns
+                if (!tradingPatterns.symbolPerformance[trade.symbol]) {
+                    tradingPatterns.symbolPerformance[trade.symbol] = { wins: 0, total: 0, avgProfit: 0 };
+                }
+                tradingPatterns.symbolPerformance[trade.symbol].total++;
+                tradingPatterns.symbolPerformance[trade.symbol].avgProfit += trade.profit;
+                if (trade.isWinner) tradingPatterns.symbolPerformance[trade.symbol].wins++;
+            });
+            
+            // Calculate averages
+            Object.keys(tradingPatterns.hourlyPerformance).forEach(hour => {
+                if (tradingPatterns.hourlyPerformance[hour].total > 0) {
+                    tradingPatterns.hourlyPerformance[hour].avgProfit /= tradingPatterns.hourlyPerformance[hour].total;
+                }
+            });
+            
+            Object.keys(tradingPatterns.dayPerformance).forEach(day => {
+                if (tradingPatterns.dayPerformance[day].total > 0) {
+                    tradingPatterns.dayPerformance[day].avgProfit /= tradingPatterns.dayPerformance[day].total;
+                }
+            });
+            
+            Object.keys(tradingPatterns.symbolPerformance).forEach(symbol => {
+                if (tradingPatterns.symbolPerformance[symbol].total > 0) {
+                    tradingPatterns.symbolPerformance[symbol].avgProfit /= tradingPatterns.symbolPerformance[symbol].total;
+                }
+            });
+        }
+
+        function makePrediction() {
+            const symbol = document.getElementById('predSymbol').value;
+            const hour = parseInt(document.getElementById('predHour').value);
+            const day = parseInt(document.getElementById('predDay').value);
+            const volume = parseFloat(document.getElementById('predVolume').value);
+            const resultDiv = document.getElementById('predictionResult');
+            
+            if (!symbol || !tradingPatterns) {
+                resultDiv.innerHTML = '<p class="error">❌ Please upload trading data first</p>';
+                resultDiv.style.display = 'block';
+                return;
+            }
+            
+            // Calculate prediction based on historical patterns
+            let winProbability = 0.5; // Base probability
+            let expectedProfit = 0;
+            let confidence = 0;
+            
+            // Hour factor
+            if (tradingPatterns.hourlyPerformance[hour] && tradingPatterns.hourlyPerformance[hour].total > 0) {
+                const hourWinRate = tradingPatterns.hourlyPerformance[hour].wins / tradingPatterns.hourlyPerformance[hour].total;
+                winProbability = (winProbability + hourWinRate) / 2;
+                expectedProfit += tradingPatterns.hourlyPerformance[hour].avgProfit * 0.4;
+                confidence += 0.25;
+            }
+            
+            // Day factor
+            if (tradingPatterns.dayPerformance[day] && tradingPatterns.dayPerformance[day].total > 0) {
+                const dayWinRate = tradingPatterns.dayPerformance[day].wins / tradingPatterns.dayPerformance[day].total;
+                winProbability = (winProbability + dayWinRate) / 2;
+                expectedProfit += tradingPatterns.dayPerformance[day].avgProfit * 0.3;
+                confidence += 0.2;
+            }
+            
+            // Symbol factor
+            if (tradingPatterns.symbolPerformance[symbol] && tradingPatterns.symbolPerformance[symbol].total > 0) {
+                const symbolWinRate = tradingPatterns.symbolPerformance[symbol].wins / tradingPatterns.symbolPerformance[symbol].total;
+                winProbability = (winProbability + symbolWinRate) / 2;
+                expectedProfit += tradingPatterns.symbolPerformance[symbol].avgProfit * 0.3;
+                confidence += 0.3;
+            }
+            
+            // Volume adjustment (simple heuristic)
+            if (volume > 0.5) {
+                expectedProfit *= 1.2; // Higher volume, higher potential profit/loss
+            } else if (volume < 0.1) {
+                expectedProfit *= 0.8;
+            }
+            
+            confidence = Math.min(confidence, 1) * 100;
+            
+            const recommendation = winProbability > 0.6 ? 'FAVORABLE' : winProbability > 0.4 ? 'NEUTRAL' : 'UNFAVORABLE';
+            const recommendationColor = winProbability > 0.6 ? 'positive' : winProbability > 0.4 ? 'warning' : 'negative';
+            
+            resultDiv.innerHTML = `
+                <h4>🎯 Prediction Result</h4>
+                <div style="margin: 1rem 0;">
+                    <div class="insight-item">
+                        <strong>Win Probability:</strong> <span class="${recommendationColor}">${(winProbability * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="insight-item">
+                        <strong>Expected Profit:</strong> <span class="${expectedProfit >= 0 ? 'positive' : 'negative'}">${expectedProfit.toFixed(2)}</span>
+                    </div>
+                    <div class="insight-item">
+                        <strong>Recommendation:</strong> <span class="${recommendationColor}">${recommendation}</span>
+                    </div>
+                    <div class="insight-item">
+                        <strong>Confidence Level:</strong> ${confidence.toFixed(1)}%
+                    </div>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 10px; margin-top: 1rem;">
+                    <strong>📊 Analysis Factors:</strong><br>
+                    • Hour ${hour}:00 historical performance<br>
+                    • ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} trading patterns<br>
+                    • ${symbol} symbol performance<br>
+                    • Volume: ${volume} lots
+                </div>
+                <div style="background: rgba(255, 107, 107, 0.1); padding: 1rem; border-radius: 10px; margin-top: 1rem; border-left: 3px solid #ff6b6b;">
+                    <strong>⚠️ Disclaimer:</strong> This prediction is based on historical patterns and should not be used as the sole basis for trading decisions. Always use proper risk management.
+                </div>
+            `;
+            
+            resultDiv.style.display = 'block';
+        }
+
+        function exportReport() {
+            if (!globalData) {
+                alert('Please upload trading data first');
+                return;
+            }
+            
+            // Generate comprehensive report
+            const totalTrades = globalData.length;
+            const totalProfit = globalData.reduce((sum, t) => sum + t.profit, 0);
+            const winRate = (globalData.filter(t => t.isWinner).length / totalTrades * 100);
+            const avgWin = globalData.filter(t => t.profit > 0).reduce((sum, t) => sum + t.profit, 0) / globalData.filter(t => t.profit > 0).length || 0;
+            const avgLoss = Math.abs(globalData.filter(t => t.profit < 0).reduce((sum, t) => sum + t.profit, 0) / globalData.filter(t => t.profit < 0).length) || 0;
+            
+            const report = `
+MT5 TRADING ANALYSIS REPORT
+Generated: ${new Date().toLocaleString()}
+=====================================
+
+EXECUTIVE SUMMARY
+----------------
+Total Trades: ${totalTrades}
+Date Range: ${globalData[0].openTime.toLocaleDateString()} to ${globalData[globalData.length-1].closeTime.toLocaleDateString()}
+Total Profit: ${totalProfit.toFixed(2)}
+Win Rate: ${winRate.toFixed(2)}%
+Average Win: ${avgWin.toFixed(2)}
+Average Loss: ${avgLoss.toFixed(2)}
+Profit Factor: ${(avgWin * globalData.filter(t => t.profit > 0).length / (avgLoss * globalData.filter(t => t.profit < 0).length)).toFixed(2)}
+
+SYMBOL PERFORMANCE
+-----------------
+${Object.entries(globalData.reduce((acc, trade) => {
+    if (!acc[trade.symbol]) acc[trade.symbol] = { profit: 0, trades: 0 };
+    acc[trade.symbol].profit += trade.profit;
+    acc[trade.symbol].trades += 1;
+    return acc;
+}, {})).map(([symbol, data]) => 
+    `${symbol}: ${data.profit.toFixed(2)} (${data.trades} trades)`
+).join('\n')}
+
+HOURLY PERFORMANCE
+-----------------
+${Array.from({length: 24}, (_, hour) => {
+    const hourTrades = globalData.filter(t => t.hour === hour);
+    if (hourTrades.length === 0) return null;
+    const hourProfit = hourTrades.reduce((sum, t) => sum + t.profit, 0);
+    const hourWinRate = (hourTrades.filter(t => t.isWinner).length / hourTrades.length * 100);
+    return `${hour}:00 - ${hourProfit.toFixed(2)} (${hourWinRate.toFixed(1)}% win rate, ${hourTrades.length} trades)`;
+}).filter(Boolean).join('\n')}
+
+TOP RECOMMENDATIONS
+------------------
+1. Focus on highest performing symbols and hours
+2. Maintain consistent risk management
+3. Monitor and adjust based on market conditions
+4. Review and update strategy monthly
+
+This report was generated by MT5 Advanced Trading Analysis Dashboard.
+For best results, combine this analysis with fundamental and technical analysis.
+            `;
+            
+            // Create and download file
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `MT5_Analysis_Report_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Filter functionality
+        document.getElementById('timePeriod').addEventListener('change', function() {
+            if (globalData) {
+                filterAndUpdateCharts();
+            }
+        });
+
+        document.getElementById('symbolFilter').addEventListener('change', function() {
+            if (globalData) {
+                filterAndUpdateCharts();
+            }
+        });
+
+        function filterAndUpdateCharts() {
+            const timePeriod = document.getElementById('timePeriod').value;
+            const symbolFilter = document.getElementById('symbolFilter').value;
+            
+            let filteredData = [...globalData];
+            
+            // Apply time filter
+            if (timePeriod !== 'all') {
+                const daysBack = parseInt(timePeriod);
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+                filteredData = filteredData.filter(trade => trade.closeTime >= cutoffDate);
+            }
+            
+            // Apply symbol filter
+            if (symbolFilter !== 'all') {
+                filteredData = filteredData.filter(trade => trade.symbol === symbolFilter);
+            }
+            
+            // Update charts with filtered data
+            if (filteredData.length > 0) {
+                createHourlyChart(filteredData);
+                createWeeklyChart(filteredData);
+                createDurationChart(filteredData);
+                updateTradeTable(filteredData);
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 MT5 Advanced Trading Analysis Dashboard loaded');
+        });
+    </script>
+</body>
+</html>
